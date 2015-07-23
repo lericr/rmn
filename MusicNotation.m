@@ -223,7 +223,7 @@ With[
 measureWidth=10,
 measureCount=Max[Length[Measures[#]]&/@Voices[score],0],
 lineWidth=.5,
-colorFn=Function[n,If[OddQ[n],Black,Blue]]
+colorFn=Function[n,If[OddQ[n],Black,Green]]
 },
 With[
 {
