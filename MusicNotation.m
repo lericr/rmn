@@ -200,8 +200,12 @@ Measures[{}]={};
 Measures[voice_Voice]:=voice[[2]];
 
 
-MeasureStaffElements[lineThickness_,lineWidth_,measureWidth_]:=
-{GrayLevel[.5],Thickness[lineThickness],Line[{{-lineWidth/2,-3},{-lineWidth/2,14}}],Line[{{measureWidth+lineWidth/2,-3},{measureWidth+lineWidth/2,14}}],Line[{{0,2},{10,2}}],Line[{{0,4},{10,4}}],Line[{{0,5},{10,5}}],Line[{{0,7},{10,7}}],Line[{{0,9},{10,9}}]};
+HighestStaffNeeded[note_]:=Max[0,Quotient[note,12,2]];
+LowestStaffNeeded[note_]:=Min[0,Quotient[note,12,-2]];
+
+
+MeasureStaffElements[lineThickness_,lineWidth_,measureWidth_,{min_,max_}]:=
+{GrayLevel[.5],Thickness[lineThickness],Line[{{-lineWidth/2,-3+12 #},{-lineWidth/2,14+12 #}}],Line[{{measureWidth+lineWidth/2,-3+12 #},{measureWidth+lineWidth/2,14+12 #}}],Line[{{0,2+12 #},{10,2+12 #}}],Line[{{0,4+12 #},{10,4+12 #}}],Line[{{0,5+12 #},{10,5+12 #}}],Line[{{0,7+12 #},{10,7+12 #}}],Line[{{0,9+12 #},{10,9+12 #}}]}&/@Range[LowestStaffNeeded[min],HighestStaffNeeded[max]];
 
 
 ChordElements[measureWidth_][{hor_,Chord[notes___]}]:=Disk[{.5+hor measureWidth,#},.5]&/@{notes};
@@ -212,8 +216,21 @@ MeasureElements[measureWidth_,colorFn_][Measure[chords___],{voiceNum_}]:=
 {colorFn[voiceNum],ChordElements[measureWidth]/@{chords}};
 
 
-DisplayMeasure[lineThickness_,lineWidth_,measureWidth_,colorFn_][mvoices:{___Measure}]:=
-Graphics[{MeasureStaffElements[lineThickness,lineWidth,measureWidth],MapIndexed[MeasureElements[measureWidth,colorFn],mvoices]}];
+DisplayMeasure[lineThickness_,lineWidth_,measureWidth_,colorFn_,{min_,max_}][mvoices:{___Measure}]:=
+Graphics[{MeasureStaffElements[lineThickness,lineWidth,measureWidth,{min,max}],MapIndexed[MeasureElements[measureWidth,colorFn],mvoices]}];
+
+
+NoteRange[data_]:=
+With[
+{
+notes=Cases[data,Chord[ns___]:>{ns},Infinity]
+},
+{Min[notes],Max[notes]}
+]
+
+
+DisplayRow[lineThickness_,lineWidth_,measureWidth_,colorFn_][mvoices:{{___Measure}...}]:=
+DisplayMeasure[lineThickness,lineWidth,measureWidth,colorFn,NoteRange[mvoices]]/@mvoices
 
 
 DisplayScore[score_String]:=DisplayScore[ReadScore[score]];
@@ -223,13 +240,14 @@ With[
 measureWidth=10,
 measureCount=Max[Length[Measures[#]]&/@Voices[score],0],
 lineWidth=.5,
-colorFn=Function[n,If[OddQ[n],Black,Green]]
+colorFn=Function[n,If[OddQ[n],Black,Green]],
+measuresPerRow=3
 },
 With[
 {
 lineThickness=lineWidth/(2 lineWidth+measureWidth)
 },
-DisplayMeasure[lineThickness,lineWidth,measureWidth,colorFn]/@Transpose[Replace[PadRight[Measures/@Voices[score]],0->EmptyMeasure[],{2}]]
+DisplayRow[lineThickness,lineWidth,measureWidth,colorFn]/@Partition[Transpose[Replace[PadRight[Measures/@Voices[score]],0->EmptyMeasure[],{2}]],measuresPerRow,measuresPerRow,{1,1},{}]
 ]
 ];
 
